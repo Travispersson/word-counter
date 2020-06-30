@@ -1,6 +1,9 @@
 pub mod hash_table {
 
-    const INIT_NUM_OF_BUCKETS: u32 = 1;
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    const INIT_NUM_OF_BUCKETS: u32 = 17;
     const LOAD_FACTOR: f64 = 0.75;
 
     struct Bucket {
@@ -8,7 +11,7 @@ pub mod hash_table {
     }
     pub struct HashTable {
         buckets: Vec<Bucket>,
-        size: u32,
+        size: usize,
     }
 
     impl HashTable {
@@ -19,11 +22,27 @@ pub mod hash_table {
             }
         }
 
-        pub fn insert(&mut self, key: String, val: u32) -> () {}
+        fn get_hash_for_key(&self, key: &String) -> usize {
+            let mut h = DefaultHasher::new();
+            key.hash(&mut h);
+            (h.finish() % self.buckets.len() as u64) as usize
+        }
+
+        pub fn insert(&mut self, key: String, val: usize) -> () {}
         pub fn remove(&mut self) -> () {} //return  Option<removed val> | None
-        pub fn lookup(&self) -> () {} //return  Option<looked up val> | None
+        pub fn lookup(&self, key: String) -> Option<u32> {
+            let index = self.get_hash_for_key(&key);
+            let bucket = &self.buckets[index];
+
+            // need to implement iterator trait for Bucket
+            for (ref key, ref val) in bucket.iter() {
+                println!("Key: {} and Val: {}", key, val);
+            }
+            None
+        }
+
         pub fn get_key_value_pairs(&self) -> () {} // return vec<(K,V)>
-        pub fn size(&self) -> u32 {
+        pub fn size(&self) -> usize {
             self.size
         }
         pub fn is_empty(&self) -> bool {
