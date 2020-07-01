@@ -38,8 +38,13 @@ pub mod hash_table {
             let hashed_key: usize = self.get_hash_for_key(&key);
             let bucket = &mut self.buckets[hashed_key];
 
-            //TODO handle collision - don't alow duplicate keys
-
+            //TODO how to impl my own iterator for mutable references??
+            for (ref item_key, ref mut item_val) in bucket.bucket.iter_mut() {
+                if *item_key == key {
+                    let old_val = std::mem::replace(item_val, val);
+                    return Some(old_val);
+                }
+            }
             bucket.bucket.push((key, val));
             self.size += 1;
             None
@@ -50,8 +55,10 @@ pub mod hash_table {
             let index = self.get_hash_for_key(&key);
             let bucket = &self.buckets[index];
 
-            for (ref key, ref val) in bucket {
-                println!("Key: {} and Val: {}", key, val);
+            for (ref item_key, ref val) in bucket {
+                if *item_key == key {
+                    return Some(*val);
+                }
             }
             None
         }
@@ -65,7 +72,7 @@ pub mod hash_table {
         }
     }
 
-    // implement an iterator that won't consume the Bucket
+    // implement an iterator that won't consume the Bucket (over immutable references only)
     impl<'a> IntoIterator for &'a Bucket {
         type Item = &'a (String, usize);
         type IntoIter = BucketIterator<'a>;
@@ -100,6 +107,9 @@ mod tests {
         let mut ht: HashTable = HashTable::new();
         ht.insert(String::from("Potato"), 10);
         assert_eq!(ht.size(), 1);
+        assert_eq!(ht.lookup(String::from("Potato")), Some(10));
+        ht.insert(String::from("Potato"), 20);
+        assert_eq!(ht.lookup(String::from("Potato")), Some(20));
     }
     #[test]
     fn lookup_ht_test() {
@@ -107,6 +117,6 @@ mod tests {
         let mut ht: HashTable = HashTable::new();
         ht.insert(String::from("Potato"), 10);
         let val = ht.lookup(String::from("Potato"));
-        assert_eq!(val, None);
+        assert_eq!(val, Some(10));
     }
 }
