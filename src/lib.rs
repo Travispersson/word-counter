@@ -3,7 +3,7 @@ pub mod hash_table {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
 
-    const INIT_NUM_OF_BUCKETS: usize = 17;
+    const INIT_NUM_OF_BUCKETS: usize = 1;
     const LOAD_FACTOR: f64 = 0.75;
 
     #[derive(Clone)]
@@ -18,8 +18,6 @@ pub mod hash_table {
     impl HashTable {
         pub fn new() -> Self {
             HashTable {
-                // just for testing atm -- will resort back to Vec::new() when resize func is
-                // implemented
                 buckets: vec![Bucket { bucket: Vec::new() }; INIT_NUM_OF_BUCKETS],
                 size: 0,
             }
@@ -27,13 +25,15 @@ pub mod hash_table {
 
         fn get_hash_for_key(&self, key: &String) -> usize {
             let mut h = DefaultHasher::new();
-            println!("length of vec{}", self.buckets.len());
             key.hash(&mut h);
             (h.finish() % self.buckets.len() as u64) as usize
         }
 
         pub fn insert(&mut self, key: String, val: usize) -> Option<usize> {
             //TODO check if we should resize
+            if (self.buckets.len() as f64) * LOAD_FACTOR <= (self.size as f64) {
+                self.resize();
+            }
 
             let hashed_key: usize = self.get_hash_for_key(&key);
             let bucket = &mut self.buckets[hashed_key];
@@ -49,7 +49,25 @@ pub mod hash_table {
             self.size += 1;
             None
         }
-        pub fn resize(&mut self) {}
+        pub fn resize(&mut self) {
+            let new_size: usize = self.buckets.len() * 2;
+
+            let mut new_buckets = vec![Bucket { bucket: Vec::new() }; new_size];
+
+            for (key, val) in self
+                .buckets
+                .iter_mut()
+                .flat_map(|bucket| bucket.bucket.drain(..))
+            {
+                let mut h = DefaultHasher::new();
+                key.hash(&mut h);
+                let index = (h.finish() % new_size as u64) as usize;
+                new_buckets[index].bucket.push((key, val));
+            }
+
+            self.buckets = new_buckets;
+        }
+
         pub fn remove(&mut self) -> () {} //return  Option<removed val> | None
         pub fn lookup(&self, key: String) -> Option<usize> {
             let index = self.get_hash_for_key(&key);
@@ -118,5 +136,22 @@ mod tests {
         ht.insert(String::from("Potato"), 10);
         let val = ht.lookup(String::from("Potato"));
         assert_eq!(val, Some(10));
+    }
+
+    #[test]
+    fn ht_resize_test() {
+        let mut ht: HashTable = HashTable::new();
+        ht.insert(String::from("Potato"), 1);
+        ht.insert(String::from("Tomato"), 1);
+        ht.insert(String::from("Dylan"), 1);
+        ht.insert(String::from("Hamlet"), 1);
+        ht.insert(String::from("Pillow"), 1);
+        ht.insert(String::from("Century"), 1);
+        assert_eq!(ht.lookup(String::from("Potato")), Some(1));
+        assert_eq!(ht.lookup(String::from("Tomato")), Some(1));
+        assert_eq!(ht.lookup(String::from("Dylan")), Some(1));
+        assert_eq!(ht.lookup(String::from("Hamlet")), Some(1));
+        assert_eq!(ht.lookup(String::from("Pillow")), Some(1));
+        assert_eq!(ht.lookup(String::from("Century")), Some(1));
     }
 }
