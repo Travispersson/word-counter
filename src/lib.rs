@@ -64,11 +64,23 @@ pub mod hash_table {
                 let index = (h.finish() % new_size as u64) as usize;
                 new_buckets[index].bucket.push((key, val));
             }
-
-            self.buckets = new_buckets;
+            std::mem::replace(&mut self.buckets, new_buckets);
         }
 
-        pub fn remove(&mut self) -> () {} //return  Option<removed val> | None
+        pub fn remove(&mut self, key: String) -> Option<usize> {
+            let index = self.get_hash_for_key(&key);
+            let bucket = &mut self.buckets[index];
+
+            let mut i = 0;
+            for (ref item_key, _) in bucket.bucket.iter_mut() {
+                if *item_key == key {
+                    self.size -= 1;
+                    return Some(bucket.bucket.remove(i).1);
+                }
+                i += 1;
+            }
+            None
+        }
         pub fn lookup(&self, key: String) -> Option<usize> {
             let index = self.get_hash_for_key(&key);
             let bucket = &self.buckets[index];
@@ -81,10 +93,20 @@ pub mod hash_table {
             None
         }
 
-        pub fn get_key_value_pairs(&self) -> () {} // return vec<(K,V)>
+        pub fn get_key_value_pairs(&self) -> Vec<(&String, &usize)> {
+            let mut pairs = vec![];
+            for bucket in &self.buckets {
+                for (ref key, ref val) in bucket {
+                    pairs.push((key, val));
+                }
+            }
+            pairs
+        }
+
         pub fn size(&self) -> usize {
             self.size
         }
+
         pub fn is_empty(&self) -> bool {
             self.size == 0
         }
@@ -153,5 +175,36 @@ mod tests {
         assert_eq!(ht.lookup(String::from("Hamlet")), Some(1));
         assert_eq!(ht.lookup(String::from("Pillow")), Some(1));
         assert_eq!(ht.lookup(String::from("Century")), Some(1));
+    }
+
+    #[test]
+    fn ht_remove_test() {
+        let mut ht: HashTable = HashTable::new();
+        ht.insert(String::from("Potato"), 1);
+        ht.insert(String::from("Tomato"), 1);
+        assert_eq!(ht.lookup(String::from("Tomato")), Some(1));
+        ht.remove(String::from("Tomato"));
+        assert_eq!(ht.lookup(String::from("Tomato")), None);
+    }
+    #[test]
+    fn ht_get_pairs_empty_test() {
+        let ht: HashTable = HashTable::new();
+        assert_eq!(ht.get_key_value_pairs(), vec![]);
+    }
+    #[test]
+    fn ht_get_pairs_test() {
+        let mut ht: HashTable = HashTable::new();
+        ht.insert(String::from("Potato"), 1);
+        ht.insert(String::from("Tomato"), 1);
+        ht.insert(String::from("Dylan"), 1);
+        assert_eq!(
+            ht.get_key_value_pairs().sort(),
+            [
+                (String::from("Potato"), 1),
+                (String::from("Tomato"), 1),
+                (String::from("Dylan"), 1)
+            ]
+            .sort()
+        )
     }
 }
