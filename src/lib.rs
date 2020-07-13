@@ -30,7 +30,6 @@ pub mod hash_table {
         }
 
         pub fn insert(&mut self, key: String, val: usize) -> Option<usize> {
-            //TODO check if we should resize
             if (self.buckets.len() as f64) * LOAD_FACTOR <= (self.size as f64) {
                 self.resize();
             }
@@ -134,7 +133,44 @@ pub mod hash_table {
         fn next(&mut self) -> Option<Self::Item> {
             let entry = self.bucket.get(self.at_index);
             self.at_index += 1;
-            entry // get() returns Option<(String, usize)> so entry is either Some(x,y) or None
+            entry
+        }
+    }
+}
+
+pub mod str_cutter {
+
+    pub struct StrCutter<'a> {
+        remainder: &'a str,
+        delimiters: &'a [char],
+    }
+
+    impl<'a> StrCutter<'a> {
+        pub fn new(text: &'a str, delimiters: &'a [char]) -> Self {
+            Self {
+                remainder: text,
+                delimiters,
+            }
+        }
+    }
+
+    impl<'a> Iterator for StrCutter<'a> {
+        type Item = &'a str;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            if let Some(next) = self.remainder.find(self.delimiters) {
+                let up_to_delimiter = &self.remainder[..next];
+                // new remainder is the index of found delimeter + size of char (4 bytes)
+                self.remainder =
+                    &self.remainder[(next + (self.delimiters[0].len_utf8() as usize))..];
+                Some(up_to_delimiter)
+            } else if self.remainder.is_empty() {
+                None
+            } else {
+                let rest = self.remainder;
+                self.remainder = "";
+                Some(rest)
+            }
         }
     }
 }
@@ -188,7 +224,9 @@ mod tests {
     }
     #[test]
     fn ht_get_pairs_empty_test() {
-        let ht: HashTable = HashTable::new();
+        let mut ht: HashTable = HashTable::new();
+        ht.insert(String::from("Tomato"), 1);
+        ht.remove(String::from("Tomato"));
         assert_eq!(ht.get_key_value_pairs(), vec![]);
     }
     #[test]
@@ -206,5 +244,34 @@ mod tests {
             ]
             .sort()
         )
+    }
+}
+#[cfg(test)]
+mod tests_str_cutter {
+    use super::str_cutter::StrCutter;
+
+    #[test]
+    fn str_cutter_test() {
+        let text = "a b c,d";
+        let cut = StrCutter::new(text, &[' ', ',']);
+        assert!(cut.eq(vec!["a", "b", "c", "d"].into_iter()));
+        let text2 = "Hello stranger! This is, some, random gibberish to test our ?! string cutter!";
+        let cut2 = StrCutter::new(text2, &['.', ' ', ',', '!', '?']);
+
+        assert!(cut2.eq(vec![
+            "Hello",
+            "stranger",
+            "This",
+            "is",
+            "some",
+            "random",
+            "gibberish",
+            "to",
+            "test",
+            "our",
+            "string",
+            "cutter",
+        ]
+        .into_iter()));
     }
 }
