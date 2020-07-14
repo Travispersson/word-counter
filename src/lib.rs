@@ -158,7 +158,7 @@ pub mod str_cutter {
         type Item = &'a str;
 
         fn next(&mut self) -> Option<Self::Item> {
-            //TODO this should handle the "bug" of adding a " " to our word collection
+            //this should handle the earlier "bug" of adding a " " to our word collection
             //at the point of the text that has 2+ consecutive delimiters..
             loop {
                 match self.remainder.chars().next() {
