@@ -158,6 +158,22 @@ pub mod str_cutter {
         type Item = &'a str;
 
         fn next(&mut self) -> Option<Self::Item> {
+            //TODO this should handle the "bug" of adding a " " to our word collection
+            //at the point of the text that has 2+ consecutive delimiters..
+            loop {
+                match self.remainder.chars().next() {
+                    Some(c) => {
+                        if self.delimiters.contains(&c) {
+                            self.remainder = &self.remainder[(c.len_utf8() as usize)..]
+                        } else {
+                            break;
+                        }
+                    }
+                    _ => break,
+                }
+            }
+
+            //rest of implementation
             if let Some(next) = self.remainder.find(self.delimiters) {
                 let up_to_delimiter = &self.remainder[..next];
                 // new remainder is the index of found delimeter + size of char (4 bytes)

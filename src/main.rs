@@ -8,5 +8,18 @@ fn main() {
         println!("{}", thing);
     }
 
+    let text3 = "Hello!? STRANGER";
+    let text3b: Vec<char> = text3.chars().collect();
+    if ['.', ' ', ',', '!', '?'].contains(&text3b[5]) {
+        println!("true bro")
+    }
+
+    let text3 = "!?";
+    let cut3 = StrCutter::new(text3, &['.', ' ', ',', '!', '?']);
+
+    for x in cut3 {
+        println!("{} poop", x);
+    }
+
     println!("Hello, world!");
 }
