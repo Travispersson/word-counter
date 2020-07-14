@@ -80,12 +80,12 @@ pub mod hash_table {
             }
             None
         }
-        pub fn lookup(&self, key: String) -> Option<usize> {
+        pub fn lookup(&self, key: &String) -> Option<usize> {
             let index = self.get_hash_for_key(&key);
             let bucket = &self.buckets[index];
 
             for (ref item_key, ref val) in bucket {
-                if *item_key == key {
+                if item_key == key {
                     return Some(*val);
                 }
             }
@@ -199,16 +199,16 @@ mod tests {
         let mut ht: HashTable = HashTable::new();
         ht.insert(String::from("Potato"), 10);
         assert_eq!(ht.size(), 1);
-        assert_eq!(ht.lookup(String::from("Potato")), Some(10));
+        assert_eq!(ht.lookup(&String::from("Potato")), Some(10));
         ht.insert(String::from("Potato"), 20);
-        assert_eq!(ht.lookup(String::from("Potato")), Some(20));
+        assert_eq!(ht.lookup(&String::from("Potato")), Some(20));
     }
     #[test]
     fn lookup_ht_test() {
         // also checks that we can iterate through bucket
         let mut ht: HashTable = HashTable::new();
         ht.insert(String::from("Potato"), 10);
-        let val = ht.lookup(String::from("Potato"));
+        let val = ht.lookup(&String::from("Potato"));
         assert_eq!(val, Some(10));
     }
 
@@ -221,12 +221,12 @@ mod tests {
         ht.insert(String::from("Hamlet"), 1);
         ht.insert(String::from("Pillow"), 1);
         ht.insert(String::from("Century"), 1);
-        assert_eq!(ht.lookup(String::from("Potato")), Some(1));
-        assert_eq!(ht.lookup(String::from("Tomato")), Some(1));
-        assert_eq!(ht.lookup(String::from("Dylan")), Some(1));
-        assert_eq!(ht.lookup(String::from("Hamlet")), Some(1));
-        assert_eq!(ht.lookup(String::from("Pillow")), Some(1));
-        assert_eq!(ht.lookup(String::from("Century")), Some(1));
+        assert_eq!(ht.lookup(&String::from("Potato")), Some(1));
+        assert_eq!(ht.lookup(&String::from("Tomato")), Some(1));
+        assert_eq!(ht.lookup(&String::from("Dylan")), Some(1));
+        assert_eq!(ht.lookup(&String::from("Hamlet")), Some(1));
+        assert_eq!(ht.lookup(&String::from("Pillow")), Some(1));
+        assert_eq!(ht.lookup(&String::from("Century")), Some(1));
     }
 
     #[test]
@@ -234,9 +234,9 @@ mod tests {
         let mut ht: HashTable = HashTable::new();
         ht.insert(String::from("Potato"), 1);
         ht.insert(String::from("Tomato"), 1);
-        assert_eq!(ht.lookup(String::from("Tomato")), Some(1));
+        assert_eq!(ht.lookup(&String::from("Tomato")), Some(1));
         ht.remove(String::from("Tomato"));
-        assert_eq!(ht.lookup(String::from("Tomato")), None);
+        assert_eq!(ht.lookup(&String::from("Tomato")), None);
     }
     #[test]
     fn ht_get_pairs_empty_test() {

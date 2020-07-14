@@ -1,25 +1,31 @@
 mod lib;
+use std::fs::File;
+use std::io::Read;
 
 fn main() {
-    use lib::str_cutter::StrCutter;
-    let text2 = "Hello stranger! This is, some, random gibberish to test our ?! string cutter!";
-    let cut2 = StrCutter::new(text2, &['.', ' ', ',', '!', '?']);
-    for thing in cut2 {
-        println!("{}", thing);
+    let file_name = "/usr/share/dict/words";
+    // let file_name = ""
+    let mut file = File::open(file_name).expect("File not found!");
+
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)
+        .expect("Couldn't read the file!");
+    // println!("{}", contents);
+
+    let words = lib::str_cutter::StrCutter::new(&contents[..], &['.', ' ', ',', '!', '?', '\n']);
+
+    let mut ht = lib::hash_table::HashTable::new();
+    for w in words {
+        let w_string = String::from(w);
+        if let Some(val) = ht.lookup(&w_string) {
+            ht.insert(w_string, val + 1);
+        } else {
+            ht.insert(w_string, 1);
+        }
     }
 
-    let text3 = "Hello!? STRANGER";
-    let text3b: Vec<char> = text3.chars().collect();
-    if ['.', ' ', ',', '!', '?'].contains(&text3b[5]) {
-        println!("true bro")
+    let pairs = ht.get_key_value_pairs();
+    for (word, value) in pairs {
+        println!("{}: {}", word, value);
     }
-
-    let text3 = "!?";
-    let cut3 = StrCutter::new(text3, &['.', ' ', ',', '!', '?']);
-
-    for x in cut3 {
-        println!("{} poop", x);
-    }
-
-    println!("Hello, world!");
 }
