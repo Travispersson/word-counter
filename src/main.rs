@@ -3,7 +3,7 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 
-fn process_word(ht: &mut lib::hash_table::HashTable, word: &str) -> () {
+fn process_word(ht: &mut lib::hash_table::HashTable<String, usize>, word: &str) -> () {
     let w_string = String::from(word);
     if let Some(val) = ht.lookup(&w_string) {
         ht.insert(w_string, val + 1);
@@ -28,9 +28,9 @@ fn main() {
             .expect("Couldn't read the file!");
 
         let words =
-            lib::str_cutter::StrCutter::new(&contents[..], &['.', ' ', ',', '!', '?', '\n']);
+            lib::str_cutter::StrCutter::new(&contents[..], &['.', ' ', '?', ',', '!', '\n']);
 
-        let mut ht = lib::hash_table::HashTable::new();
+        let mut ht: lib::hash_table::HashTable<String, usize> = lib::hash_table::HashTable::new();
         for w in words {
             process_word(&mut ht, w)
         }

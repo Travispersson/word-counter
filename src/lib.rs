@@ -7,15 +7,15 @@ pub mod hash_table {
     const LOAD_FACTOR: f64 = 0.75;
 
     #[derive(Clone)]
-    struct Bucket {
-        bucket: Vec<(String, usize)>, // key == word and value is count
+    struct Bucket<K, V> {
+        bucket: Vec<(K, V)>,
     }
-    pub struct HashTable {
-        buckets: Vec<Bucket>,
+    pub struct HashTable<K, V> {
+        buckets: Vec<Bucket<K, V>>,
         size: usize,
     }
 
-    impl HashTable {
+    impl<K: Hash + Eq + Clone, V: Clone> HashTable<K, V> {
         pub fn new() -> Self {
             HashTable {
                 buckets: vec![Bucket { bucket: Vec::new() }; INIT_NUM_OF_BUCKETS],
@@ -23,13 +23,13 @@ pub mod hash_table {
             }
         }
 
-        fn get_hash_for_key(&self, key: &String) -> usize {
+        fn get_hash_for_key(&self, key: &K) -> usize {
             let mut h = DefaultHasher::new();
             key.hash(&mut h);
             (h.finish() % self.buckets.len() as u64) as usize
         }
 
-        pub fn insert(&mut self, key: String, val: usize) -> Option<usize> {
+        pub fn insert(&mut self, key: K, val: V) -> Option<V> {
             if (self.buckets.len() as f64) * LOAD_FACTOR <= (self.size as f64) {
                 self.resize();
             }
@@ -66,13 +66,13 @@ pub mod hash_table {
             std::mem::replace(&mut self.buckets, new_buckets);
         }
 
-        pub fn remove(&mut self, key: String) -> Option<usize> {
-            let index = self.get_hash_for_key(&key);
+        pub fn remove(&mut self, key: &K) -> Option<V> {
+            let index = self.get_hash_for_key(key);
             let bucket = &mut self.buckets[index];
 
             let mut i = 0;
             for (ref item_key, _) in bucket.bucket.iter_mut() {
-                if *item_key == key {
+                if item_key == key {
                     self.size -= 1;
                     return Some(bucket.bucket.remove(i).1);
                 }
@@ -80,19 +80,19 @@ pub mod hash_table {
             }
             None
         }
-        pub fn lookup(&self, key: &String) -> Option<usize> {
-            let index = self.get_hash_for_key(&key);
+        pub fn lookup(&self, key: &K) -> Option<&V> {
+            let index = self.get_hash_for_key(key);
             let bucket = &self.buckets[index];
 
             for (ref item_key, ref val) in bucket {
                 if item_key == key {
-                    return Some(*val);
+                    return Some(val);
                 }
             }
             None
         }
 
-        pub fn get_key_value_pairs(&self) -> Vec<(&String, &usize)> {
+        pub fn get_key_value_pairs(&self) -> Vec<(&K, &V)> {
             let mut pairs = vec![];
             for bucket in &self.buckets {
                 for (ref key, ref val) in bucket {
@@ -112,9 +112,9 @@ pub mod hash_table {
     }
 
     // implement an iterator that won't consume the Bucket (over immutable references only)
-    impl<'a> IntoIterator for &'a Bucket {
-        type Item = &'a (String, usize);
-        type IntoIter = BucketIterator<'a>;
+    impl<'a, K, V> IntoIterator for &'a Bucket<K, V> {
+        type Item = &'a (K, V);
+        type IntoIter = BucketIterator<'a, K, V>;
 
         fn into_iter(self) -> Self::IntoIter {
             BucketIterator {
@@ -124,12 +124,12 @@ pub mod hash_table {
         }
     }
 
-    struct BucketIterator<'a> {
-        bucket: &'a Vec<(String, usize)>,
+    struct BucketIterator<'a, K, V> {
+        bucket: &'a Vec<(K, V)>,
         at_index: usize,
     }
-    impl<'a> Iterator for BucketIterator<'a> {
-        type Item = &'a (String, usize);
+    impl<'a, K, V> Iterator for BucketIterator<'a, K, V> {
+        type Item = &'a (K, V);
         fn next(&mut self) -> Option<Self::Item> {
             let entry = self.bucket.get(self.at_index);
             self.at_index += 1;
@@ -158,8 +158,7 @@ pub mod str_cutter {
         type Item = &'a str;
 
         fn next(&mut self) -> Option<Self::Item> {
-            //this should handle the earlier "bug" of adding a " " to our word collection
-            //at the point of the text that has 2+ consecutive delimiters..
+            // this will eat up all consecutive delimiters..
             loop {
                 match self.remainder.chars().next() {
                     Some(c) => {
@@ -196,58 +195,58 @@ mod tests {
     use super::hash_table::HashTable;
     #[test]
     fn insert_ht_test() {
-        let mut ht: HashTable = HashTable::new();
+        let mut ht = HashTable::new();
         ht.insert(String::from("Potato"), 10);
         assert_eq!(ht.size(), 1);
-        assert_eq!(ht.lookup(&String::from("Potato")), Some(10));
+        assert_eq!(ht.lookup(&String::from("Potato")), Some(&10));
         ht.insert(String::from("Potato"), 20);
-        assert_eq!(ht.lookup(&String::from("Potato")), Some(20));
+        assert_eq!(ht.lookup(&String::from("Potato")), Some(&20));
     }
     #[test]
     fn lookup_ht_test() {
         // also checks that we can iterate through bucket
-        let mut ht: HashTable = HashTable::new();
+        let mut ht = HashTable::new();
         ht.insert(String::from("Potato"), 10);
         let val = ht.lookup(&String::from("Potato"));
-        assert_eq!(val, Some(10));
+        assert_eq!(val, Some(&10));
     }
 
     #[test]
     fn ht_resize_test() {
-        let mut ht: HashTable = HashTable::new();
+        let mut ht = HashTable::new();
         ht.insert(String::from("Potato"), 1);
         ht.insert(String::from("Tomato"), 1);
         ht.insert(String::from("Dylan"), 1);
         ht.insert(String::from("Hamlet"), 1);
         ht.insert(String::from("Pillow"), 1);
         ht.insert(String::from("Century"), 1);
-        assert_eq!(ht.lookup(&String::from("Potato")), Some(1));
-        assert_eq!(ht.lookup(&String::from("Tomato")), Some(1));
-        assert_eq!(ht.lookup(&String::from("Dylan")), Some(1));
-        assert_eq!(ht.lookup(&String::from("Hamlet")), Some(1));
-        assert_eq!(ht.lookup(&String::from("Pillow")), Some(1));
-        assert_eq!(ht.lookup(&String::from("Century")), Some(1));
+        assert_eq!(ht.lookup(&String::from("Potato")), Some(&1));
+        assert_eq!(ht.lookup(&String::from("Tomato")), Some(&1));
+        assert_eq!(ht.lookup(&String::from("Dylan")), Some(&1));
+        assert_eq!(ht.lookup(&String::from("Hamlet")), Some(&1));
+        assert_eq!(ht.lookup(&String::from("Pillow")), Some(&1));
+        assert_eq!(ht.lookup(&String::from("Century")), Some(&1));
     }
 
     #[test]
     fn ht_remove_test() {
-        let mut ht: HashTable = HashTable::new();
+        let mut ht = HashTable::new();
         ht.insert(String::from("Potato"), 1);
         ht.insert(String::from("Tomato"), 1);
-        assert_eq!(ht.lookup(&String::from("Tomato")), Some(1));
-        ht.remove(String::from("Tomato"));
+        assert_eq!(ht.lookup(&String::from("Tomato")), Some(&1));
+        ht.remove(&String::from("Tomato"));
         assert_eq!(ht.lookup(&String::from("Tomato")), None);
     }
     #[test]
     fn ht_get_pairs_empty_test() {
-        let mut ht: HashTable = HashTable::new();
+        let mut ht = HashTable::new();
         ht.insert(String::from("Tomato"), 1);
-        ht.remove(String::from("Tomato"));
+        ht.remove(&String::from("Tomato"));
         assert_eq!(ht.get_key_value_pairs(), vec![]);
     }
     #[test]
     fn ht_get_pairs_test() {
-        let mut ht: HashTable = HashTable::new();
+        let mut ht = HashTable::new();
         ht.insert(String::from("Potato"), 1);
         ht.insert(String::from("Tomato"), 1);
         ht.insert(String::from("Dylan"), 1);
@@ -261,9 +260,6 @@ mod tests {
             .sort()
         )
     }
-}
-#[cfg(test)]
-mod tests_str_cutter {
     use super::str_cutter::StrCutter;
 
     #[test]
